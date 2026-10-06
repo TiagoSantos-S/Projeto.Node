@@ -1,15 +1,8 @@
 const express = require('express');
+const pool = require('./db');
 const app = express();
 app.use(express.json());
-const pool = require('./db');
 const porta = 3000;
-
-const livros = [
-    { id: 1, titulo: "Homem aranha", autor: "Stan Lee", ano: 1999},
-    { id: 2, titulo: "Dom Casmurro", autor: "Machado de Assis", ano: 1875 },
-    { id: 3, titulo: "O Cortiço", autor: "Aluísio Azevedo", ano: 1880 }, 
-    { id: 4, titulo: "Iracema", autor: "José de Alencar", ano: 1777 }
-];
 
 app.get('/livros', async (req, res) => {
   const [linhas] = await pool.query('SELECT * FROM livros');
@@ -17,50 +10,47 @@ app.get('/livros', async (req, res) => {
 });
 
 app.get('/livros/:id', async (req, res) => {
-  const livroEncontrado = livros.find((livro) => livro.id === Number(req.params.id));
-    
-  if(livroEncontrado){
-      res.json(livroEncontrado);
-  }else{
-      res.send("Livro não encontrado\n");
-    }
+  const [linhas] = await pool.query('SELECT * FROM livros WHERE id = ?', [req.params.id]);
+
+  if (linhas.length > 0) {
+    res.json(linhas[0]);
+  } else {
+    res.send("Livro não encontrado\n");
+  }
 });
 
-app.post('/livros', async (req, res) =>{
-  
-  let novoLivro = { id: livros.length + 1, titulo: req.body.titulo , autor: req.body.autor , ano: req.body.ano};
+app.post('/livros', async (req, res) => {
+  const [resultado] = await pool.query(
+    'INSERT INTO livros (titulo, autor, ano) VALUES (?, ?, ?)',
+    [req.body.titulo, req.body.autor, req.body.ano]
+  );
 
-  livros.push(novoLivro);
-  res.json(novoLivro);                                                                                                                                                                                                                                                                
-
+  let novoLivro = { id: resultado.insertId, titulo: req.body.titulo, autor: req.body.autor, ano: req.body.ano };
+  res.json(novoLivro);
 });
 
 app.put('/livros/:id', async (req, res) => {
-  const livroEncontrado = livros.find((livro) => livro.id === Number(req.params.id));
+  const [resultado] = await pool.query(
+    'UPDATE livros SET titulo = ?, autor = ?, ano = ? WHERE id = ?',
+    [req.body.titulo, req.body.autor, req.body.ano, req.params.id]
+  );
 
-  if(livroEncontrado){
-    livroEncontrado.titulo = req.body.titulo;
-    livroEncontrado.autor = req.body.autor;
-    livroEncontrado.ano =  req.body.ano;
-    
-    res.json(livroEncontrado);
-  
-  }else{
+  if (resultado.affectedRows > 0) {
+    const [linhas] = await pool.query('SELECT * FROM livros WHERE id = ?', [req.params.id]);
+    res.json(linhas[0]);
+  } else {
     res.send("Erro ao encontrar livro\n");
   }
-  
 });
 
 app.delete('/livros/:id', async (req, res) => {
-  const indice = livros.findIndex((livro) => livro.id === Number(req.params.id));
+  const [resultado] = await pool.query('DELETE FROM livros WHERE id = ?', [req.params.id]);
 
-  if(indice != -1){
-    livros.splice(indice,1);
+  if (resultado.affectedRows > 0) {
     res.send("Livro apagado com sucesso\n");
-  }else{
+  } else {
     res.send("Livro não encontrado ou não existe\n");
   }
-
 });
 
 app.listen(porta, () => {
