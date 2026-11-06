@@ -1,7 +1,9 @@
 const express = require('express');
 const pool = require('./db');
+const cors = require('cors');
 const app = express();
 app.use(express.json());
+app.use(cors());
 const porta = 3000;
 
 app.get('/livros', async (req, res) => {
