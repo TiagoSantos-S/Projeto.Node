@@ -5,11 +5,34 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 const porta = 3000;
-
+ 
 app.get('/livros', async (req, res) => {
-  const [linhas] = await pool.query('SELECT * FROM livros');
+  const [linhas] = await pool.query('SELECT * FROM livros ORDER BY id');
   res.json(linhas);
 });
+
+app.get('/livros/ordenado/ano', async (req,res) =>{
+  const [linhas] = await pool.query('SELECT * FROM livros ORDER BY ano');
+  res.json(linhas);
+});
+
+app.get('/livros/ordenado/titulo/alfabeto', async (req,res) => {
+  const [linhas] = await pool.query('SELECT * FROM livros ORDER BY titulo');
+  res.json(linhas);
+})
+
+app.get('/livros/ordenado/titulo/:inicial', async (req,res) => {
+  const [linhas] = await pool.query('SELECT * FROM livros WHERE titulo LIKE ? ORDER BY titulo', [req.params.inicial] + '%');
+
+  if (linhas.length > 0) {
+    res.json(linhas[0]);
+  } else {
+    res.send("Livro não encontrado\n");
+  }
+
+  res.json(linhas);
+})
+ 
 
 app.get('/livros/:id', async (req, res) => {
   const [linhas] = await pool.query('SELECT * FROM livros WHERE id = ?', [req.params.id]);
@@ -45,6 +68,7 @@ app.put('/livros/:id', async (req, res) => {
   }
 });
 
+
 app.delete('/livros/:id', async (req, res) => {
   const [resultado] = await pool.query('DELETE FROM livros WHERE id = ?', [req.params.id]);
 
@@ -54,6 +78,7 @@ app.delete('/livros/:id', async (req, res) => {
     res.send("Livro não encontrado ou não existe\n");
   }
 });
+
 
 app.listen(porta, () => {
   console.log(`Servidor rodando na porta ${porta}`);
